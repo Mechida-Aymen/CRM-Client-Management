@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: "{{ nginx_image }}"
+    container_name: nginx
+    build:
+      context: ./infra/
+      dockerfile: ./nginx/Dockerfile
+      args:
+        BUILD_ARGUMENT_ENV: prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - symfony-code:/var/www/html
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - symfony
+    networks:
+      - symfony
+
+  symfony:
+    image: "{{ symfony_image }}"
+    container_name: symfony
+    build:
+      context: ./code
+      dockerfile: ./Dockerfile
+    environment:
+      DATABASE_URL: "mysql://root:secret@mysql:3306/symfony?serverVersion=8.0"
+    volumes:
+      - symfony-code:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - symfony
+
+  mysql:
+    image: mysql:8
+    platform: linux/x86_64
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: symfony
+    volumes:
+      - mysql:/var/lib/mysql
+    networks:
+      - symfony
+
+
+volumes:
+  mysql:
+  symfony-code:
+
+networks:
+  symfony:
+    name: symfony

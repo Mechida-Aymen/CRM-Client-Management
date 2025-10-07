@@ -1,0 +1,101 @@
+---
+- name: Deploy Symfony App with Docker Compose
+  hosts: web
+  become: yes
+
+  vars:
+    project_root: /opt/symfony-app
+    nginx_image: "{{ dockerhub_username }}/{{ nginx_name }}:{{ nginx_version }}"
+    symfony_image: "{{ dockerhub_username }}/{{ symfony_name }}:{{ symfony_version }}"
+
+  tasks:
+    - name: Ensure project directory exists
+      file:
+        path: "{{ project_root }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if Docker is already installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: true
+
+    - name: Install prerequisites
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+      when:
+        - docker_check.rc != 0
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when:
+        - docker_check.rc != 0
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+      when:
+        - docker_check.rc != 0
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+      when:
+        - docker_check.rc != 0
+
+    - name: Ensure Docker is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Copy Docker Compose file as a template
+      template:
+        src: ../../docker-compose.prod.yaml.j2
+        dest: "{{ project_root }}/docker-compose.yml"
+
+    - name: Run docker compose down
+      ansible.builtin.command:
+        cmd: docker compose down
+      args:
+        chdir: "{{ project_root }}"
+
+    - name: Remove a Docker volume
+      community.docker.docker_volume:
+        name: symfony-app_symfony-code
+        state: absent
+        
+    - name: Copy .env file
+      copy:
+        src: ../../code/.env
+        dest: "{{ project_root }}/.env"
+      ignore_errors: yes
+
+    - name: Authenticate with Docker Hub
+      community.docker.docker_login:
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+
+    - name: Pull latest images
+      shell: docker compose pull
+      args:
+        chdir: "{{ project_root }}"
+
+    - name: nginx configuartion
+      copy:
+        src: ../nginx/conf.d
+        dest: "{{ project_root }}/infra/nginx"
+
+    - name: Start services
+      shell: docker compose up -d
+      args:
+        chdir: "{{ project_root }}"

@@ -1,0 +1,47 @@
+ stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-symfony', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        sonar-scanner \
+                            -Dsonar.projectKey=Symfony-devops \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=http://99.0.2.4:9000 \
+                            -Dsonar.token=sqp_5636775e8a7de543b042cecdf9523fa7b5c6a320
+                    """
+                }
+            }
+        }
+
+       
+        stage('Docker Build') {
+            steps {
+                script {
+                    echo 'image build ...'
+                    sh "ls"
+                    sh "docker build -t ${NGINX_NAME}:${NGINX_VERSION} -f infra/nginx/Dockerfile ."
+                    sh """
+                    cd code
+                    ls
+                    docker build -t ${SYMFONY_NAME}:${SYMFONY_VERSION} -f Dockerfile .
+                    """
+                    sh "cd .."
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    
+                    withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                        sh """
+                            echo ${env.dockerHubPassword} | docker login -u ${env.dockerHubUser} --password-stdin
+                            docker tag ${SYMFONY_NAME}:${SYMFONY_VERSION} ${env.dockerHubUser}/${SYMFONY_NAME}:${SYMFONY_VERSION}
+                            docker tag ${NGINX_NAME}:${NGINX_VERSION} ${env.dockerHubUser}/${NGINX_NAME}:${NGINX_VERSION}                            
+                            docker push ${env.dockerHubUser}/${SYMFONY_NAME}:${SYMFONY_VERSION}
+                            docker push ${env.dockerHubUser}/${NGINX_NAME}:${NGINX_VERSION}
+                        """
+                    }
+                }
+            }
+        }

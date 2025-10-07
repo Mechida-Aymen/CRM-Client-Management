@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symfony-app
+  namespace: symfony-proj
+  labels:
+    app: symfony-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: symfony-app
+  template:
+    metadata:
+      labels:
+        app: symfony-app
+    spec:
+      initContainers:
+      - name: init-symfony-code
+        image: mechaymen/symfony:1.0
+        command: ["sh", "-c", "cp -r /var/www/html/. /shared"]
+        volumeMounts:
+        - name: shared-code
+          mountPath: /shared
+
+      containers:
+      - name: php-fpm
+        image: mechaymen/symfony:1.0
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+        ports:
+        - containerPort: 9000
+        env:
+          - name: APP_ENV
+            value: "prod"
+          - name: APP_DEBUG
+            value: "0"
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: symfony-db-config
+                key: DB_HOST
+          - name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: symfony-db-config
+                key: DB_PORT
+          - name: DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: symfony-db-config
+                key: DB_NAME
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                name: symfony-db-config
+                key: DB_USER
+          - name: DB_SERVER_VERSION
+            valueFrom:
+              configMapKeyRef:
+                name: symfony-db-config
+                key: DB_SERVER_VERSION
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-secret
+                key: MYSQL_ROOT_PASSWORD
+        volumeMounts:
+        - name: shared-code
+          mountPath: /var/www/html
+
+      - name: nginx
+        image: mechaymen/nginx:1.0
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: shared-code
+          mountPath: /var/www/html
+
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: symfony-nginx-config
+          items:
+          - key: default.conf
+            path: default.conf
+      - name: shared-code
+        persistentVolumeClaim:
+          claimName: symfony-pvc
+      
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: symfony-service
+  namespace: symfony-proj
+spec:
+  selector:
+    app: symfony-app
+  ports:
+  - protocol: TCP
+    port: 80          # exposed port outside pods
+    targetPort: 80    # port nginx listens on
+  type: ClusterIP

@@ -1,0 +1,18 @@
+    -> utiliser un agent qui contient tous les deppendances pour le pipeline
+        -> php 
+        -> composer
+        -> jdk 17
+        -> Sonar scanner
+        -> ansible
+        -> docker (D O D)
+    -> pipeline :
+        => analyse sonarqube
+        => build des images
+        => pusher les images vers dockerhub
+        => generer le cle ssh et copy vers la machine cible
+        => ansible 
+
+    -> on a 2 differents environment pour la contenerization :
+        => une pour le dev
+        => une pour la prod
+            

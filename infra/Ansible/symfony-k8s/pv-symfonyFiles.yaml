@@ -1,0 +1,24 @@
+# pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: symfony-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:                     # Use hostPath for local development
+    path: /tmp/symfony-shared
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: symfony-pvc
+  namespace: symfony-proj
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

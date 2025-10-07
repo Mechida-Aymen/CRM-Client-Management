@@ -1,0 +1,55 @@
+{% extends 'base_user.html.twig' %}
+
+{% block title %}Add New Client{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1 class="mb-4">Add New Client</h1>
+
+    {{ form_start(form, {'attr': {'class': 'needs-validation'}}) }}
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            {{ form_label(form.entreprise) }}
+            {{ form_widget(form.entreprise, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.entreprise) }}
+        </div>
+
+        <div class="form-group col-md-6">
+            {{ form_label(form.phoneNumber) }}
+            {{ form_widget(form.phoneNumber, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.phoneNumber) }}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            {{ form_label(form.adressePostale) }}
+            {{ form_widget(form.adressePostale, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.adressePostale) }}
+        </div>
+
+        <div class="form-group col-md-6">
+            {{ form_label(form.ville) }}
+            {{ form_widget(form.ville, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.ville) }}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            {{ form_label(form.pays) }}
+            {{ form_widget(form.pays, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.pays) }}
+        </div>
+
+        <div class="form-group col-md-6">
+            {{ form_label(form.manager) }}
+            {{ form_widget(form.manager, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.manager) }}
+        </div>
+    </div>
+
+    <button class="btn btn-success" type="submit">Save Client</button>
+    {{ form_end(form) }}
+</div>
+{% endblock %}
